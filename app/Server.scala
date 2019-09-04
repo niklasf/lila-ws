@@ -36,6 +36,9 @@ final class Server @Inject() (
   def connectToLobby(req: RequestHeader, sri: Sri, flag: Option[Flag]): Future[WebsocketFlow] =
     connect(req, sri, flag)(LobbyClientActor.start)
 
+  def connectToSimul(simul: Simul, req: RequestHeader, sri: Sri, flag: Option[Flag]): Future[WebsocketFlow] =
+    connect(req, sri, flag)(SimulClientActor.start(simul))
+
   private def connect(req: RequestHeader, sri: Sri, flag: Option[Flag])(
     actor: ClientActor.Deps => Behavior[ClientMsg]
   ): Future[WebsocketFlow] =

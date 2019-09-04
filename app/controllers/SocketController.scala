@@ -25,4 +25,8 @@ class SocketController @Inject() (val controllerComponents: ControllerComponents
   def lobby(sri: String): WebSocket = WebSocket { req =>
     server.connectToLobby(req, Sri(sri), flagOf(req)) map Right.apply
   }
+
+  def simul(id: Simul.ID, sri: String): WebSocket = WebSocket { req =>
+    server.connectToSimul(Simul(id), req, Sri(sri), flagOf(req)) map Right.apply
+  }
 }

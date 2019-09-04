@@ -9,9 +9,11 @@ import scala.util.Try
 
 sealed trait LilaOut extends LilaMsg
 
+sealed trait SiteOut extends LilaOut
+
 sealed trait LobbyOut extends LilaOut
 
-sealed trait SiteOut extends LilaOut
+sealed trait SimulOut extends LilaOut
 
 object LilaOut {
 
@@ -44,6 +46,10 @@ object LilaOut {
   case class DisconnectSri(sri: Sri) extends LobbyOut
 
   case class TellSris(sri: Seq[Sri], json: JsonString) extends LobbyOut
+
+  // simul
+
+  case class SimulHostIsOn(simulId: Simul.ID, gameId: Game.ID) extends SimulOut
 
   // impl
 
@@ -91,6 +97,11 @@ object LilaOut {
           sris.split(",").toSeq map Sri.apply,
           JsonString(payload)
         ))
+        case _ => None
+      }
+
+      case "simul/host" => args.split(" ", 2) match {
+        case Array(simulId, gameId) => Some(SimulHostIsOn(simulId, gameId))
         case _ => None
       }
 

@@ -23,6 +23,12 @@ object Sri {
   type Str = String
 }
 
+case class Simul(id: Simul.ID) extends AnyVal
+
+object Simul {
+  type ID = String
+}
+
 case class Flag private (value: String) extends AnyVal with StringValue
 
 object Flag {

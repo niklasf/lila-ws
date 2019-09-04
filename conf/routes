@@ -5,3 +5,4 @@
 GET     /socket/v4                          controllers.SocketController.site(sri: String)
 GET     /analysis/socket/v4                 controllers.SocketController.site(sri: String)
 GET     /lobby/socket/v4                    controllers.SocketController.lobby(sri: String)
+GET     /simul/$id<\w{8}>/socket/v4         controllers.SocketController.simul(id: String, sri: String)
