@@ -1,4 +1,5 @@
 package lila.ws
+package sm
 
 import akka.actor.typed.ActorRef
 import chess.format.{ FEN, Uci }
@@ -10,7 +11,7 @@ object FenSM {
 
   case class State(
       games: Map[Game.ID, Watched] = Map.empty,
-      emit: List[LilaIn] = Nil
+      emit: List[LilaIn.Site] = Nil
   )
 
   def apply(state: State, input: Input): State = input match {
@@ -52,11 +53,11 @@ object FenSM {
     // move comes from the server
     case Move(LilaOut.Move(gameId, lastUci, fen)) =>
       state.games.get(gameId).fold(state.copy(emit = Nil)) {
-        case Watched(_, clients) =>
+        case w @ Watched(_, clients) =>
           val msg = ClientIn.Fen(gameId, lastUci, fen)
           clients foreach { _ ! msg }
           state.copy(
-            games = state.games + (gameId -> Watched(Some(Position(lastUci, fen)), clients)),
+            games = state.games + (gameId -> w.copy(position = Some(Position(lastUci, fen)))),
             emit = Nil
           )
       }
@@ -69,4 +70,6 @@ object FenSM {
 
   case class Position(lastUci: Uci, fen: FEN)
   case class Watched(position: Option[Position], clients: Set[ActorRef[ClientMsg]])
+
+  def machine = StateMachine[State, Input, LilaIn.Site](State(), apply _, _.emit)
 }

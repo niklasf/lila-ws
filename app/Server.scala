@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 
 import ipc._
-import lila.ws.util.Util.{ userAgent, flagOf }
+import lila.ws.util.Util.{ reqName, userAgent, flagOf }
 
 @Singleton
 final class Server @Inject() (
@@ -31,30 +31,34 @@ final class Server @Inject() (
   private val bus = Bus(system)
 
   def connectToSite(req: RequestHeader, sri: Sri, flag: Option[Flag]): Future[WebsocketFlow] =
-    connect(req, sri, flag)(SiteClientActor.start)
+    connectTo(req, sri, flag)(SiteClientActor.start) map asWebsocket(new RateLimit(
+      maxCredits = 30,
+      duration = 15.seconds,
+      name = s"site ${reqName(req)}"
+    ))
 
   def connectToLobby(req: RequestHeader, sri: Sri, flag: Option[Flag]): Future[WebsocketFlow] =
-    connect(req, sri, flag)(LobbyClientActor.start)
+    connectTo(req, sri, flag)(LobbyClientActor.start) map asWebsocket(new RateLimit(
+      maxCredits = 30,
+      duration = 30.seconds,
+      name = s"lobby ${reqName(req)}"
+    ))
 
   def connectToSimul(simul: Simul, req: RequestHeader, sri: Sri, flag: Option[Flag]): Future[WebsocketFlow] =
-    connect(req, sri, flag)(SimulClientActor.start(simul))
+    connectTo(req, sri, flag)(SimulClientActor.start(simul))
 
-  private def connect(req: RequestHeader, sri: Sri, flag: Option[Flag])(
+  private def connectTo(req: RequestHeader, sri: Sri, flag: Option[Flag])(
     actor: ClientActor.Deps => Behavior[ClientMsg]
-  ): Future[WebsocketFlow] =
+  ): Future[Flow[ClientOut, ClientIn, _]] =
     auth(req) map { user =>
       actorFlow(req) { clientIn =>
         actor {
           ClientActor.Deps(clientIn, queues, sri, flag, user, userAgent(req), req.remoteAddress, bus)
         }
       }
-    } map limitAndTransform(new RateLimit(
-      maxCredits = 30,
-      duration = 15.seconds,
-      name = s"IP: ${req.remoteAddress} UA: ${userAgent(req)}"
-    ))
+    }
 
-  private def limitAndTransform(limiter: RateLimit)(flow: Flow[ClientOut, ClientIn, _]): WebsocketFlow =
+  private def asWebsocket(limiter: RateLimit)(flow: Flow[ClientOut, ClientIn, _]): WebsocketFlow =
     AkkaStreams.bypassWith[Message, ClientOut, Message](Flow[Message] collect {
       case TextMessage(text) if limiter(text) => ClientOut.parse(text).fold(
         _ => Right(CloseMessage(Some(CloseCodes.Unacceptable), "Unable to parse json message")),
