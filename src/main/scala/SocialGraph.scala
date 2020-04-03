@@ -2,10 +2,15 @@ package lila.ws
 
 import com.typesafe.config.Config
 import java.util.concurrent.ConcurrentSkipListSet
-import java.util.concurrent.locks.ReentrantLock
+//import java.util.concurrent.locks.ReentrantLock
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+
+class ReentrantLock {
+  def lock(): Unit = ()
+  def unlock(): Unit = ()
+}
 
 // Best effort fixed capacity cache for the social graph of online users.
 //
